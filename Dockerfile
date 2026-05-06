@@ -1,27 +1,31 @@
+# استخدام صورة PHP رسمية مع Apache
 FROM php:8.2-apache
 
-# تثبيت ملحقات PHP المطلوبة لـ PhpSpreadsheet و PostgreSQL
+# تثبيت الملحقات المطلوبة لـ PostgreSQL و ZIP و GD
 RUN apt-get update && apt-get install -y \
+    libpq-dev \
     libzip-dev \
     libpng-dev \
     libjpeg-dev \
     libfreetype6-dev \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install gd zip pdo pdo_pgsql
+    && docker-php-ext-install -j$(nproc) gd pdo_pgsql pgsql zip
 
 # تمكين mod_rewrite في Apache
 RUN a2enmod rewrite
 
-# نسخ ملفات المشروع إلى مجلد Apache
+# نسخ جميع ملفات المشروع إلى مجلد Apache
 COPY . /var/www/html/
 
-# تعيين الصلاحيات الصحيحة
+# تعيين الصلاحيات المناسبة
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 755 /var/www/html
 
-# تعيين متغيرات البيئة من Render (اختياري، يمكنك استخدام Environment Variables في Render UI)
-ENV DB_HOST=${DB_HOST}
-ENV DB_PORT=${DB_PORT}
-ENV DB_NAME=${DB_NAME}
-ENV DB_USER=${DB_USER}
-ENV DB_PASSWORD=${DB_PASSWORD}
+# تعيين مجلد العمل
+WORKDIR /var/www/html
+
+# فتح المنفذ 80 (Apache)
+EXPOSE 80
+
+# تشغيل Apache
+CMD ["apache2-foreground"]
